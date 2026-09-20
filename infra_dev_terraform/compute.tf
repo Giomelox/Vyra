@@ -85,7 +85,7 @@ data "archive_file" "lambda_ingestion" {
   for_each = var.nasa_apis
 
   type        = "zip"
-  source_file = "${path.module}/lambdas/${each.key}/handler.py"
+  source_file = "${path.module}/lambda/ingestion/${each.key}.py"
   output_path = "${path.module}/.build/${each.key}.zip"
 }
 
@@ -102,7 +102,7 @@ resource "aws_lambda_function" "ingestion" {
 
   function_name    = "${var.project_name}-ingest-${each.key}"
   role             = aws_iam_role.lambda_ingestion.arn
-  handler          = "handler.handler"
+  handler          = "${each.key}.handler"
   runtime          = "python3.12"
   timeout          = 30
   memory_size      = 256

@@ -62,7 +62,7 @@ resource "aws_iam_role_policy" "step_functions" {
 resource "aws_sfn_state_machine" "ingestion" {
   name     = "${var.project_name}-ingestion"
   role_arn = aws_iam_role.step_functions.arn
-  definition = file("${path.module}/step_function_definition.json")
+  definition = file("${path.module}/step_functions_definitions/step_function_definition.json")
 
   logging_configuration {
     log_destination        = "${aws_cloudwatch_log_group.step_functions.arn}:*"
