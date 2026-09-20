@@ -1,0 +1,39 @@
+{
+  "Comment": "Orquestra a ingestao de uma API da NASA. Generica: recebe function_name e api_name no input, invoca a Lambda correspondente com retry/catch.",
+  "StartAt": "InvokeIngestionLambda",
+  "States": {
+    "InvokeIngestionLambda": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName.$": "$.function_name",
+        "Payload.$": "$"
+      },
+      "ResultPath": "$.result",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.TooManyRequestsException", "Lambda.ServiceException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "IngestionFailed"
+        }
+      ],
+      "Next": "IngestionSucceeded"
+    },
+    "IngestionSucceeded": {
+      "Type": "Succeed"
+    },
+    "IngestionFailed": {
+      "Type": "Fail",
+      "Error": "IngestionFailed",
+      "Cause": "Falha ao ingerir dados da API da NASA apos as tentativas de retry."
+    }
+  }
+}
