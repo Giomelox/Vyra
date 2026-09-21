@@ -1,50 +1,49 @@
 """
-Lambda de ingestao para a API "exoplanet_archive" da NASA.
+Lambda de ingestao para o NASA Exoplanet Archive.
 
-ATENCAO - isto e um esqueleto funcional, nao uma integracao final:
-cada API da NASA tem particularidades proprias (parametros obrigatorios,
-as vezes dominio diferente de api.nasa.gov) que precisam ser ajustadas
-aqui antes de ir pra producao. Ver comentario TODO abaixo.
+NAO fica em api.nasa.gov, NAO usa api_key, e NAO e uma URL de endpoint fixa
+como as outras - e um servico TAP (Table Access Protocol) que recebe uma
+query em ADQL (dialeto de SQL). Aqui pedimos os 50 exoplanetas confirmados
+mais recentes, ordenados por ano de descoberta.
+Fonte: https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html
 """
 import json
 import os
 import time
+import urllib.parse
 import urllib.request
 import urllib.error
 
 import boto3
 
 API_NAME = "exoplanet_archive"
-ENDPOINT_PATH = os.environ["ENDPOINT_PATH"]
 IMAGES_BUCKET = os.environ["IMAGES_BUCKET"]
 API_DATA_TABLE = os.environ["API_DATA_TABLE"]
 HISTORY_TABLE = os.environ["HISTORY_TABLE"]
-NASA_API_KEY_SECRET_ARN = os.environ["NASA_API_KEY_SECRET_ARN"]
 
-secrets_client = boto3.client("secretsmanager")
+ADQL_QUERY = (
+    "select top 50 pl_name,hostname,disc_year,discoverymethod "
+    "from ps order by disc_year desc"
+)
+EXOPLANET_ARCHIVE_URL = (
+    "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query="
+    + urllib.parse.quote(ADQL_QUERY)
+    + "&format=json"
+)
+
 dynamodb = boto3.resource("dynamodb")
 
 
-def _get_api_key() -> str:
-    resp = secrets_client.get_secret_value(SecretId=NASA_API_KEY_SECRET_ARN)
-    return resp["SecretString"]
-
-
-def _fetch_from_nasa(api_key: str) -> dict:
-    # TODO: cada API tem parametros proprios (ex: NeoWs precisa de
-    # start_date/end_date; EONET nao usa api_key; SSD/CNEOS fica em
-    # ssd-api.jpl.nasa.gov, nao em api.nasa.gov). Ajustar por API.
-    url = f"https://api.nasa.gov{ENDPOINT_PATH}?api_key={api_key}"
+def _fetch_from_exoplanet_archive() -> dict:
     try:
-        with urllib.request.urlopen(url, timeout=20) as response:
+        with urllib.request.urlopen(EXOPLANET_ARCHIVE_URL, timeout=20) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.URLError as e:
-        raise RuntimeError(f"Falha ao chamar a API da NASA (exoplanet_archive): {e}")
+        raise RuntimeError(f"Falha ao chamar o NASA Exoplanet Archive: {e}")
 
 
 def handler(event, context):
-    api_key = _get_api_key()
-    dados = _fetch_from_nasa(api_key)
+    dados = _fetch_from_exoplanet_archive()
 
     agora = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     dados_serializados = json.dumps(dados)[:390000]  # limite de item do DynamoDB

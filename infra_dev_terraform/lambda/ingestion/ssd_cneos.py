@@ -1,10 +1,10 @@
 """
-Lambda de ingestao para a API "ssd_cneos" da NASA.
+Lambda de ingestao para SSD/CNEOS - Close Approach Data (asteroides).
 
-ATENCAO - isto e um esqueleto funcional, nao uma integracao final:
-cada API da NASA tem particularidades proprias (parametros obrigatorios,
-as vezes dominio diferente de api.nasa.gov) que precisam ser ajustadas
-aqui antes de ir pra producao. Ver comentario TODO abaixo.
+NAO fica em api.nasa.gov e NAO usa api_key - e um servico publico da JPL.
+Defaults da propria API ja fazem sentido para o nosso caso (aproximacoes
+de NEOs a menos de 0.05 au nos proximos 60 dias).
+Fonte: https://ssd-api.jpl.nasa.gov/doc/cad.html
 """
 import json
 import os
@@ -15,36 +15,25 @@ import urllib.error
 import boto3
 
 API_NAME = "ssd_cneos"
-ENDPOINT_PATH = os.environ["ENDPOINT_PATH"]
 IMAGES_BUCKET = os.environ["IMAGES_BUCKET"]
 API_DATA_TABLE = os.environ["API_DATA_TABLE"]
 HISTORY_TABLE = os.environ["HISTORY_TABLE"]
-NASA_API_KEY_SECRET_ARN = os.environ["NASA_API_KEY_SECRET_ARN"]
 
-secrets_client = boto3.client("secretsmanager")
+CNEOS_URL = "https://ssd-api.jpl.nasa.gov/cad.api"
+
 dynamodb = boto3.resource("dynamodb")
 
 
-def _get_api_key() -> str:
-    resp = secrets_client.get_secret_value(SecretId=NASA_API_KEY_SECRET_ARN)
-    return resp["SecretString"]
-
-
-def _fetch_from_nasa(api_key: str) -> dict:
-    # TODO: cada API tem parametros proprios (ex: NeoWs precisa de
-    # start_date/end_date; EONET nao usa api_key; SSD/CNEOS fica em
-    # ssd-api.jpl.nasa.gov, nao em api.nasa.gov). Ajustar por API.
-    url = f"https://api.nasa.gov{ENDPOINT_PATH}?api_key={api_key}"
+def _fetch_from_cneos() -> dict:
     try:
-        with urllib.request.urlopen(url, timeout=20) as response:
+        with urllib.request.urlopen(CNEOS_URL, timeout=20) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.URLError as e:
-        raise RuntimeError(f"Falha ao chamar a API da NASA (ssd_cneos): {e}")
+        raise RuntimeError(f"Falha ao chamar a API SSD/CNEOS: {e}")
 
 
 def handler(event, context):
-    api_key = _get_api_key()
-    dados = _fetch_from_nasa(api_key)
+    dados = _fetch_from_cneos()
 
     agora = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     dados_serializados = json.dumps(dados)[:390000]  # limite de item do DynamoDB

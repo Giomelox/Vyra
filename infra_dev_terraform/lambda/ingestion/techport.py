@@ -1,10 +1,7 @@
 """
 Lambda de ingestao para a API "techport" da NASA.
 
-ATENCAO - isto e um esqueleto funcional, nao uma integracao final:
-cada API da NASA tem particularidades proprias (parametros obrigatorios,
-as vezes dominio diferente de api.nasa.gov) que precisam ser ajustadas
-aqui antes de ir pra producao. Ver comentario TODO abaixo.
+Endpoint padrao de api.nasa.gov - funciona apenas com api_key.
 """
 import json
 import os
@@ -31,9 +28,7 @@ def _get_api_key() -> str:
 
 
 def _fetch_from_nasa(api_key: str) -> dict:
-    # TODO: cada API tem parametros proprios (ex: NeoWs precisa de
-    # start_date/end_date; EONET nao usa api_key; SSD/CNEOS fica em
-    # ssd-api.jpl.nasa.gov, nao em api.nasa.gov). Ajustar por API.
+    # Este endpoint funciona so com api_key, sem parametros extras.
     url = f"https://api.nasa.gov{ENDPOINT_PATH}?api_key={api_key}"
     try:
         with urllib.request.urlopen(url, timeout=20) as response:
