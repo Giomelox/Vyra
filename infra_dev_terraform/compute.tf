@@ -38,6 +38,9 @@ resource "aws_ecs_task_definition" "frontend" {
         { name = "USER_CONFIG_TABLE", value = aws_dynamodb_table.user_config.name },
         { name = "IMAGES_BUCKET", value = aws_s3_bucket.images.bucket },
         { name = "AWS_REGION", value = var.aws_region },
+        # Usado pelo Earth Imagery sob demanda (unico fluxo do front-end
+        # que precisa chamar a API da NASA diretamente).
+        { name = "NASA_API_KEY_SECRET_ARN", value = aws_secretsmanager_secret.nasa_api_key.arn },
       ]
       logConfiguration = {
         logDriver = "awslogs"

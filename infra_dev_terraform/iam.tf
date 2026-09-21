@@ -77,10 +77,22 @@ resource "aws_iam_role_policy" "ecs_task" {
         Resource = aws_dynamodb_table.user_config.arn
       },
       {
-        Sid      = "LerEGravarImagens"
-        Effect   = "Allow"
+        Sid    = "LerEGravarImagens"
+        Effect = "Allow"
+        # HeadObject usa a mesma permissao de s3:GetObject - e o que o
+        # backend do Next.js usa pra checar se uma coordenada do Earth
+        # Imagery ja foi buscada antes, sem precisar de acao extra.
         Action   = ["s3:GetObject", "s3:PutObject"]
         Resource = "${aws_s3_bucket.images.arn}/*"
+      },
+      {
+        Sid    = "LerApiKeyDaNasaParaEarthImagery"
+        Effect = "Allow"
+        # Earth Imagery e sob demanda (chamado direto pelo backend do
+        # front-end, nao por uma Lambda de ingestao) - por isso a task
+        # role tambem precisa ler o secret, diferente das outras APIs.
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = aws_secretsmanager_secret.nasa_api_key.arn
       }
     ]
   })

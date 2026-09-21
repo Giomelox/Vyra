@@ -1,0 +1,39 @@
+# --- Terraform ---
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.auto.tfvars
+!example.tfvars
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+.terraformrc
+terraform.rc
+
+# Zips gerados pelo data "archive_file" (ver compute.tf: output_path = .build/*.zip)
+infra_dev_terraform/.build/
+
+# --- Python (Lambdas) ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# --- Node / Next.js (front-end) ---
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+
+# --- Diversos ---
+.DS_Store
+*.swp
